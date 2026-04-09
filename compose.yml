@@ -2,7 +2,7 @@ services:
   hasktorch:
     build: .
     volumes:
-      - .:/home/ubuntu/internship
+      - .:/home/ubuntu/internship:z
     ports:
       - "8888:8888"
     command: jupyter lab --ip 0.0.0.0 --NotebookApp.token=''
