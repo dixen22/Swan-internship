@@ -1,2 +1,1 @@
-# internship
 # Swan-internship

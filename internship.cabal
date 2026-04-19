@@ -55,6 +55,22 @@ executable internship-exe
     , internship
   default-language: Haskell2010
 
+executable session3-linear-regression
+  main-is: LinearRegression.hs
+  other-modules:
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session3
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , hasktorch
+    , hasktorch-tools
+    , internship
+  default-language: Haskell2010
+
 test-suite internship-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
