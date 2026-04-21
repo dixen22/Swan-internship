@@ -5,6 +5,7 @@ RUN curl -sSL https://get.haskellstack.org/ | sh
 RUN stack upgrade
 RUN stack --version
 RUN stack setup
+RUN sudo apt update --allow-releaseinfo-change || true && sudo DEBIAN_FRONTEND=noninteractive apt install -y gnuplot
 
 RUN mkdir libraries
 RUN mv ./hasktorch ./inline-c ./dist-newstyle ./libraries/

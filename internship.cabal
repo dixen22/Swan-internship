@@ -37,6 +37,7 @@ library
       base >=4.7 && <5
     , hasktorch
     , hasktorch-tools
+    , nlp-tools
   default-language: Haskell2010
 
 executable internship-exe
@@ -53,6 +54,7 @@ executable internship-exe
     , hasktorch
     , hasktorch-tools
     , internship
+    , nlp-tools
   default-language: Haskell2010
 
 executable session3-linear-regression
@@ -69,6 +71,7 @@ executable session3-linear-regression
     , hasktorch
     , hasktorch-tools
     , internship
+    , nlp-tools
   default-language: Haskell2010
 
 test-suite internship-test
@@ -86,4 +89,5 @@ test-suite internship-test
     , hasktorch
     , hasktorch-tools
     , internship
+    , nlp-tools
   default-language: Haskell2010
