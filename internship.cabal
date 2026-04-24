@@ -65,6 +65,7 @@ executable session-3-graduate-admission-linear
   main-is: GraduateAdmissionLinear.hs
   other-modules:
       LinearRegression
+      MultipleRegression
       Paths_internship
   autogen-modules:
       Paths_internship
@@ -81,10 +82,32 @@ executable session-3-graduate-admission-linear
     , nlp-tools
   default-language: Haskell2010
 
+executable session-3-multiple-regression
+  main-is: MultipleRegression.hs
+  other-modules:
+      GraduateAdmissionLinear
+      LinearRegression
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session3
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is MultipleRegression
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , cassava
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+  default-language: Haskell2010
+
 executable session3-linear-regression
   main-is: LinearRegression.hs
   other-modules:
       GraduateAdmissionLinear
+      MultipleRegression
       Paths_internship
   autogen-modules:
       Paths_internship

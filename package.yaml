@@ -63,6 +63,17 @@ executables:
     dependencies:
       - internship
 
+  session-3-multiple-regression:
+    main: MultipleRegression.hs
+    source-dirs: Session3
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is MultipleRegression
+    dependencies:
+      - internship
+
   session-3-graduate-admission-linear:
     main: GraduateAdmissionLinear.hs
     source-dirs: Session3
