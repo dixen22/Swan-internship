@@ -98,7 +98,7 @@ main = do
 
     putStrLn "Train"
     putStrLn "------"
-    let epochs = [1..30]
+    let epochs = [1..15]
     ((finalA, finalB), lossesR) <- mapAccumM epochs (a, b) trainStep
 
     let losses = map asValue (reverse lossesR) :: [Float]

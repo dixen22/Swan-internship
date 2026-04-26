@@ -66,6 +66,16 @@ trainStep x1 x2 y epoch ((lrA, lrB), (a1, a2, b)) = do
 
     return (((lrA, lrB), (newA1, newA2, newB)), trainLoss)
 
+evalStep :: ((Float, Float), Float) -> (Tensor, Tensor, Tensor) -> IO ((Tensor, Tensor, Tensor), Float)
+evalStep ((evalX1, evalX2), evalY) params = do
+    let evalY' = asValue $ linear params (asTensor evalX1) (asTensor evalX2) :: Float
+
+    putStrLn $ "correct answer: " ++ show evalY
+    putStrLn $ "estimated: " ++ show evalY'
+    putStrLn "******"
+
+    return (params, evalY')
+
 main :: IO ()
 main = do
     let x1Tens = asTensor x1List
@@ -75,7 +85,7 @@ main = do
     putStrLn "Train"
     putStrLn "------"
     let epochs = [1..10]
-        lr = (asTensor (0.00001 :: Float), asTensor (0.001 :: Float))
+        lr = (asTensor (0.00002 :: Float), asTensor (0.015 :: Float))
         a1 = asTensor (0.0 :: Float)
         a2 = asTensor (0.0 :: Float)
         b = asTensor (0.0 :: Float)
@@ -83,6 +93,11 @@ main = do
     ((_, (finalA1, finalA2, finalB)), lossesR) <- mapAccumM epochs (lr, (a1, a2, b)) trainStep'
 
     let losses = map asValue (reverse lossesR) :: [Float]
+
+    putStrLn "Test"
+    putStrLn "------"
+    let xsList = zip x1List x2List
+    _ <- mapAccumM (zip xsList yList) (finalA1, finalA2, finalB) evalStep
 
     putStrLn "Result"
     putStrLn "------"
