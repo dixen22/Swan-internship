@@ -12,7 +12,7 @@ numIters = 500
 learningRate :: Tensor
 learningRate = 1e-1
 
-trainingData :: [([Float], Float)]
+trainingData :: [([Float], Int)]
 trainingData = [ ([0, 0], 0)
                , ([0, 1], 1)
                , ([1, 0], 1)

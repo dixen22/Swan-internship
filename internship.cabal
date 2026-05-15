@@ -26,12 +26,16 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Evaluation
+      LoadData
+      Mlp
   other-modules:
       Paths_internship
   autogen-modules:
       Paths_internship
   hs-source-dirs:
       src
+      Session5/src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
@@ -133,6 +137,67 @@ executable session-4-perceptron-and-gate
   hs-source-dirs:
       Session4
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is PerceptronAndGate
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , cassava
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+  default-language: Haskell2010
+
+executable session-5-admit
+  main-is: Admit.hs
+  other-modules:
+      Titanic
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session5
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Admit
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , cassava
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+  default-language: Haskell2010
+
+executable session-5-evaluation
+  main-is: Evaluation.hs
+  other-modules:
+      LoadData
+      Mlp
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session5/src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Evaluation
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , cassava
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+  default-language: Haskell2010
+
+executable session-5-titanic
+  main-is: Titanic.hs
+  other-modules:
+      Admit
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session5
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Titanic
   build-depends:
       base >=4.7 && <5
     , bytestring

@@ -39,7 +39,9 @@ ghc-options:
   - -Wredundant-constraints
 
 library:
-  source-dirs: src
+  source-dirs:
+    - src
+    - Session5/src
 
 executables:
   internship-exe:
@@ -104,6 +106,39 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -main-is MlpXor
+    dependencies:
+      - internship
+
+  session-5-evaluation:
+    main: Evaluation.hs
+    source-dirs: Session5/src
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is Evaluation
+    dependencies:
+      - internship
+
+  session-5-admit:
+    main: Admit.hs
+    source-dirs: Session5
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is Admit
+    dependencies:
+      - internship
+
+  session-5-titanic:
+    main: Titanic.hs
+    source-dirs: Session5
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is Titanic
     dependencies:
       - internship
 
