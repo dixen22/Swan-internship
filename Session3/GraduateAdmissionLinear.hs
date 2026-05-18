@@ -3,7 +3,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module GraduateAdmissionLinear where
+module GraduateAdmissionLinear (main) where
 
 import GHC.Generics
 import System.IO
@@ -12,18 +12,31 @@ import Data.Either (rights)
 import Data.ByteString (ByteString, hGetSome, empty)
 import Data.Csv.Incremental
 import Data.Csv (FromRecord)
+import Data.List.Split (splitPlaces)
 import Torch.Tensor (Tensor, asTensor, asValue, size)
 import Torch.Functional (sumAll, sqrt)
 import Torch.Control (mapAccumM)
 import ML.Exp.Chart (drawLearningCurve)
 
+numEpochs :: Int
+numEpochs = 1070
+
+lr :: (Tensor, Tensor)
+lr = (asTensor (0.015 :: Float), asTensor (0.89 :: Float))
+
+chosenX :: String
+chosenX = "cgpa" -- Chose between "greScore", "toeflScore" and "cgpa"
 
 data Record = Record
-    { serialNo      :: !Float
-    , chanceOfAdmit :: !Float
-    , greScore      :: !Float
-    , toeflScore    :: !Float
-    , cgpa          :: !Float
+    { serialNo         :: !Float
+    , greScore         :: !Float
+    , toeflScore       :: !Float
+    , universityRating :: !Float
+    , sop              :: !Float
+    , lor              :: !Float
+    , cgpa             :: !Float
+    , research         :: !Float
+    , chanceOfAdmit    :: !Float
     } deriving (Show, Eq, Generic)
 
 instance FromRecord Record
@@ -59,6 +72,16 @@ loadFromCSV path xsField = do
                     _            -> fail $ "Unknown field: " ++ xsField
 
         loop [] (decode HasHeader)
+
+trainTestEvalSplit :: (Float, Float, Float) -> [e] -> ([e], [e], [e])
+trainTestEvalSplit (trainPercentage, testPercentage, evalPercentage) xs =
+    let xLength = fromIntegral (length xs)
+        percentageToSize percentage = floor (xLength * percentage)
+        trainSize = percentageToSize trainPercentage
+        testSize  = percentageToSize testPercentage
+        evalSize  = percentageToSize evalPercentage
+        resultList = splitPlaces [trainSize, testSize, evalSize] xs
+    in ((resultList !! 0), (resultList !! 1), (resultList !! 2))
 
 getStats :: Tensor -> (Tensor, Tensor)
 getStats t =
@@ -106,14 +129,14 @@ calculateNewB b lr errors dataSize =
     in b - (lr * dB)
 
 
-trainStep :: Tensor -> Tensor -> Tensor -> Tensor -> Int -> ((Tensor, Tensor), (Tensor, Tensor)) -> IO (((Tensor, Tensor), (Tensor, Tensor)), (Tensor, Tensor))
-trainStep trainX trainY valX valY epoch ((lrA, lrB), (a, b)) = do
+trainStep :: Tensor -> Tensor -> Tensor -> Tensor -> Int -> (Tensor, Tensor) -> IO ((Tensor, Tensor), (Tensor, Tensor))
+trainStep trainX trainY valX valY epoch (a, b) = do
     let trainY' = linear (a, b) trainX
         dataSize = asTensor (size 0 trainX)
         errors = trainY' - trainY
 
-        newA = calculateNewA a lrA errors dataSize trainX
-        newB = calculateNewB b lrB errors dataSize
+        newA = calculateNewA a (fst lr) errors dataSize trainX
+        newB = calculateNewB b (snd lr) errors dataSize
 
         trainLoss = cost errors dataSize
         valLoss = validStep (newA, newB) valX valY
@@ -121,7 +144,7 @@ trainStep trainX trainY valX valY epoch ((lrA, lrB), (a, b)) = do
     putStrLn $ "Epoch " ++ show epoch ++ " | Train Loss : " ++ show trainLoss ++ " | Val Loss : " ++ show valLoss
     putStrLn "******"
 
-    return (((lrA, lrB), (newA, newB)), (trainLoss, valLoss))
+    return ((newA, newB), (trainLoss, valLoss))
 
 validStep :: (Tensor, Tensor) -> Tensor -> Tensor -> Tensor
 validStep (a, b) valX valY =
@@ -142,34 +165,19 @@ evalStep (evalX, evalY) params = do
 
 main :: IO ()
 main = do
-    let chosenX = "cgpa" -- Chose between "greScore", "toeflScore" and "cgpa"*
-        normalizeX = False
-    (trainXList, trainYList) <- loadFromCSV "Session3/data/train.csv" chosenX
-    (validXList, validYList) <- loadFromCSV "Session3/data/valid.csv" chosenX
-    (evalXList', evalYList) <- loadFromCSV "Session3/data/eval.csv" chosenX
+    (xList, yList) <- loadFromCSV "Session3/data/Admission_Predict.csv" chosenX
 
-    let rawTrainX = asTensor (trainXList :: [Float])
-        statsTrain = getStats rawTrainX
-        trainX = if normalizeX
-                    then normalize rawTrainX statsTrain
-                    else rawTrainX
+    let (trainXList, validXList, evalXList) = trainTestEvalSplit (0.8, 0.1, 0.1) xList
+        (trainYList, validYList, evalYList) = trainTestEvalSplit (0.8, 0.1, 0.1) yList
+        trainX = asTensor (trainXList :: [Float])
         trainY = asTensor (trainYList :: [Float])
-        validX = if normalizeX
-                    then normalize (asTensor (validXList :: [Float])) statsTrain
-                    else asTensor (validXList :: [Float])
+        validX = asTensor (validXList :: [Float])
         validY = asTensor (validYList :: [Float])
-        evalXList = if normalizeX
-                        then asValue (normalize (asTensor (evalXList' :: [Float])) statsTrain) :: [Float]
-                        else evalXList'
 
     putStrLn "Train"
     putStrLn "------"
-    let epochs = [1..1070]
-        lr = (asTensor (0.015 :: Float), asTensor (0.89 :: Float))
-        a = asTensor (0.0 :: Float)
-        b = asTensor (0.0 :: Float)
-        trainStep' = trainStep trainX trainY validX validY
-    ((_, (finalA, finalB)), lossesR) <- mapAccumM epochs (lr, (a, b)) trainStep'
+    let weights = (asTensor (0.0 :: Float), asTensor (0.0 :: Float))
+    (finalWeigths, lossesR) <- mapAccumM [1..numEpochs] weights $ trainStep trainX trainY validX validY
 
     let losses = reverse lossesR
         trainLoss = [asValue x :: Float | (x, _) <- losses]
@@ -177,12 +185,12 @@ main = do
 
     putStrLn "Test"
     putStrLn "------"
-    _ <- mapAccumM (zip evalXList evalYList) (finalA, finalB) evalStep
+    _ <- mapAccumM (zip evalXList evalYList) finalWeigths evalStep
 
     putStrLn "Result"
     putStrLn "------"
-    putStrLn $ "Final a : " ++ show finalA
-    putStrLn $ "Final b : " ++ show finalB
+    putStrLn $ "Final a : " ++ show (fst finalWeigths)
+    putStrLn $ "Final b : " ++ show (snd finalWeigths)
 
     let imgName = "GALLearningCurves-" ++ chosenX ++ ".png"
         title = "Learning curves of GraduateAdmissionLinear.hs with " ++ chosenX ++ " in x"
