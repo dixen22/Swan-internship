@@ -6,7 +6,7 @@
 Module      : LoadData
 Description : Generic CSV data loading and preprocessing utility.
 -}
-module LoadData (loadFromCSV, standardize) where
+module LoadData (loadFromCSV, standardize, trainTestEvalSplit) where
 
 import System.IO
 import System.Exit (exitFailure)
@@ -14,15 +14,8 @@ import Data.Either (rights)
 import Data.ByteString (ByteString, hGetSome, empty)
 import Data.Csv.Incremental
 import Data.Csv (FromRecord)
-import Torch.Tensor (Tensor, asTensor)
+import Torch.Tensor (Tensor, asTensor, shape, sliceDim)
 import Torch (stdMeanDim, Dim(..), KeepDim(..))
-
--- | Standardizes a tensor by subtracting the mean and dividing by the standard deviation.
--- A small epsilon (1e-8) is added to prevent division by zero.
-standardize :: Tensor -> Tensor
-standardize xs =
-    let (xStds, xMeans) = stdMeanDim (Dim 0) True KeepDim xs
-    in (xs - xMeans) / (xStds + 1e-8)
 
 -- | Streams data.
 feed :: (ByteString -> Parser a) -> Handle -> IO (Parser a)
@@ -55,8 +48,23 @@ loadFromCSV path extractor = do
                     xTensor = asTensor xsList
                     yTensor = asTensor ysList
 
-                    xStandardized = standardize xTensor
-
-                return (xStandardized, yTensor)
+                return (xTensor, yTensor)
 
         loop [] (decode HasHeader)
+
+-- | Standardizes a tensor by subtracting the mean and dividing by the standard deviation.
+-- A small epsilon (1e-8) is added to prevent division by zero.
+standardize :: Tensor -> Tensor
+standardize xs =
+    let (xStds, xMeans) = stdMeanDim (Dim 0) True KeepDim xs
+    in (xs - xMeans) / (xStds + 1e-8)
+
+trainTestEvalSplit :: (Float, Float) -> Tensor -> (Tensor, Tensor, Tensor)
+trainTestEvalSplit (trainRatio, testRatio) xs =
+    let numSamples = head (shape xs)
+        trainSize  = round (fromIntegral numSamples * trainRatio)
+        testSize   = round (fromIntegral numSamples * testRatio)
+        xTrain     = sliceDim 0 0 trainSize 1 xs
+        xTest      = sliceDim 0 trainSize (trainSize + testSize) 1 xs
+        xEval      = sliceDim 0 (trainSize + testSize) numSamples 1 xs
+    in (xTrain, xTest, xEval)
