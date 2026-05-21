@@ -22,6 +22,8 @@ description: Please see the README on GitHub at <https://github.com/githubuser/i
 dependencies:
   - base >= 4.7 && < 5
   - split
+  - containers
+  - utf8-string
   - hasktorch
   - hasktorch-tools
   - nlp-tools
@@ -142,6 +144,15 @@ executables:
       - -main-is Titanic
     dependencies:
       - internship
+
+  session-6-word2vec:
+    main: Word2vec.hs
+    source-dirs: Session6
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is Word2vec
 
 tests:
   internship-test:
