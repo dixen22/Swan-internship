@@ -12,6 +12,7 @@ import Data.Char (toLower)
 import Codec.Binary.UTF8.String (encode, decode)
 import GHC.Generics
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as B8
 import Data.Word (Word8)
 import qualified Data.Map.Strict as M
 import Data.List (group, sort, sortOn)
@@ -27,10 +28,10 @@ import System.IO (hFlush, stdout)
 import System.Mem (performMajorGC)
 
 batchSize :: Int
-batchSize = 64
+batchSize = 128
 
 numEpoch :: Int
-numEpoch = 10
+numEpoch = 20
 
 learningRate :: Tensor
 learningRate = 1e-2
@@ -79,11 +80,11 @@ isStopWord :: B.ByteString -> Bool
 isStopWord word = word `elem` map (B.pack . encode) stopWords
 
 preprocess :: B.ByteString -> [[B.ByteString]]
-preprocess texts = map (filter (not . isStopWord) . B.split (head $ encode " ")) textLines
+preprocess texts = map (filter (not . isStopWord) . B.split 32) textLines
   where
-    lowerBytes = encode $ map toLower (decode $ B.unpack texts)
-    filteredtexts = B.pack $ filter (not . isUnncessaryChar) lowerBytes
-    textLines = B.split (head $ encode "\n") filteredtexts
+    lowerBytes = B8.map toLower texts
+    filteredtexts = B.filter (not . isUnncessaryChar) lowerBytes
+    textLines = B.split 10 filteredtexts
 
 wordToIndexFactory :: [B.ByteString] -> (B.ByteString -> Int)
 wordToIndexFactory wordlst wrd = M.findWithDefault (length wordlst) wrd (M.fromList (zip wordlst [0.. length wordlst]))
@@ -151,9 +152,8 @@ processEpoch trainBatches valBatches epoch model = do
     let avgValLoss = totalValLoss / fromIntegral (length valBatches)
 
     -- Log progress periodically rather than every epoch to reduce standard output noise
-    when (epoch `mod` 1 == 0) $ do
-        printf "  Epoch %4d | Train Loss: %12.6e | Val Loss: %12.6e\n" epoch avgTrainLoss avgValLoss
-        hFlush stdout
+    printf "  Epoch %4d | Train Loss: %12.6e | Val Loss: %12.6e\n" epoch avgTrainLoss avgValLoss
+    hFlush stdout
 
     performMajorGC
 
@@ -180,7 +180,7 @@ main = do
 
         idxes = map wordToIndex allWords
         dataset = zip (init idxes) (tail idxes)
-        (trainData, validData) = trainTestSplit (0.01, 0.001) dataset
+        (trainData, validData) = trainTestSplit (0.8, 0.1) dataset
         trainBatches = makeBatch batchSize trainData
         valBatches = makeBatch batchSize validData
 

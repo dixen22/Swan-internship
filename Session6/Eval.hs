@@ -11,12 +11,15 @@ module Eval (main) where
 import Codec.Binary.UTF8.String (encode)
 import GHC.Generics
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as B8
+import Data.Char (toLower)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes)
 import Text.Read (readMaybe)
 
 import Torch
 import Torch.Serialize (loadParams)
+import Evaluation (evaluate)
 
 modelPath :: String
 modelPath = "Session6/data/sample_embedding.params"
@@ -33,9 +36,10 @@ data Embedding = Embedding {
 } deriving (Generic, Parameterized)
 
 preprocess :: B.ByteString -> [[B.ByteString]]
-preprocess texts = map (B.split (head $ encode " ")) textLines
+preprocess texts = map (B.split 32) textLines
   where
-    textLines = B.split (head $ encode "\n") texts
+    lowerBytes = B8.map toLower texts
+    textLines = B.split 10 lowerBytes
 
 wordToIndexFactory :: [B.ByteString] -> (B.ByteString -> Int)
 wordToIndexFactory wordlst wrd =
@@ -103,10 +107,10 @@ evaluateSTS loadedEmb wordToIndexFunc tsvPath = do
 
         calcPercent part = (fromIntegral part / fromIntegral totalPairs) * 100 :: Float
 
+        actualClasses = map fst results
+        predictedClasses = map snd results
     putStrLn "Results"
-    putStrLn $ "  Pairs evaluated   : " ++ show totalPairs
-    putStrLn $ "  Exact predictions : " ++ show exactMatches ++ " (" ++ show (calcPercent exactMatches) ++ "%)"
-    putStrLn $ "  Close predictions : " ++ show closeMatches ++ " (" ++ show (calcPercent closeMatches) ++ "%)"
+    evaluate [0..5] actualClasses predictedClasses
 
 main :: IO ()
 main = do
