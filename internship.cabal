@@ -235,9 +235,33 @@ executable session-5-titanic
     , utf8-string
   default-language: Haskell2010
 
+executable session-6-eval
+  main-is: Eval.hs
+  other-modules:
+      Word2vec
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session6
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Eval
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , cassava
+    , containers
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+    , split
+    , utf8-string
+  default-language: Haskell2010
+
 executable session-6-word2vec
   main-is: Word2vec.hs
   other-modules:
+      Eval
       Paths_internship
   autogen-modules:
       Paths_internship
