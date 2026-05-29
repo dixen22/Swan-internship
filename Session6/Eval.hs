@@ -12,13 +12,13 @@ import Codec.Binary.UTF8.String (encode)
 import GHC.Generics
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as B8
+import Data.Word (Word8)
 import Data.Char (toLower)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes)
 import Text.Read (readMaybe)
 
 import Torch
-import Torch.Serialize (loadParams)
 import Evaluation (evaluate)
 
 modelPath :: String
@@ -28,22 +28,32 @@ wordLstPath = "Session6/data/sample_wordlst.txt"
 stsFilePath :: String
 stsFilePath = "Session6/data/answer-answer.test.tsv"
 
-dimention :: Int
-dimention = 8
-
 data Embedding = Embedding {
     wordEmbedding :: Parameter
 } deriving (Generic, Parameterized)
 
+unnecessaryChars, stopWords :: [String]
+unnecessaryChars = [".", "!", ",", ";", "?", "<", ">", "\\", "/", "(", ")", "\"", "'"]
+stopWords = [" ", "br"]
+
+isUnnecessaryChar :: Word8 -> Bool
+isUnnecessaryChar char = char `elem` map (head . encode) unnecessaryChars
+
+isStopWord :: B.ByteString -> Bool
+isStopWord word = word `elem` map (B.pack . encode) stopWords
+
 preprocess :: B.ByteString -> [[B.ByteString]]
-preprocess texts = map (B.split 32) textLines
+preprocess texts = map (filter (not . isStopWord) . B.split 32) textLines
   where
     lowerBytes = B8.map toLower texts
-    textLines = B.split 10 lowerBytes
+    filteredtexts = B.filter (not . isUnnecessaryChar) lowerBytes
+    textLines = B.split 10 filteredtexts
 
 wordToIndexFactory :: [B.ByteString] -> (B.ByteString -> Int)
-wordToIndexFactory wordlst wrd =
-    M.findWithDefault (length wordlst) wrd (M.fromList (zip wordlst [0.. length wordlst]))
+wordToIndexFactory wordlst = \wrd ->
+    M.findWithDefault (length wordlst) wrd dict
+  where
+    dict = M.fromList (zip wordlst [0..])
 
 getSentenceVector :: Embedding -> (B.ByteString -> Int) -> String -> Tensor
 getSentenceVector loadedEmb wordToIndexFunc sentence =
@@ -101,14 +111,9 @@ evaluateSTS loadedEmb wordToIndexFunc tsvPath = do
     processedMaybes <- mapM (processLine loadedEmb wordToIndexFunc) lns
     let results = catMaybes processedMaybes
 
-    let totalPairs = length results
-        exactMatches = length (filter (\(humain, modele) -> humain == modele) results)
-        closeMatches = length (filter (\(humain, modele) -> Prelude.abs (humain - modele) <= 1) results)
-
-        calcPercent part = (fromIntegral part / fromIntegral totalPairs) * 100 :: Float
-
-        actualClasses = map fst results
+    let actualClasses = map fst results
         predictedClasses = map snd results
+
     putStrLn "Results"
     evaluate [0..5] actualClasses predictedClasses
 
@@ -117,7 +122,6 @@ main = do
     wordLstContent <- B.readFile wordLstPath
     let wordlst = B.split (head $ encode "\n") wordLstContent
         wordToIndex = wordToIndexFactory wordlst
-        vocabSize = length wordlst + 1
 
     initWordEmb <- makeIndependent $ zeros' [1]
     let initEmb = Embedding {wordEmbedding = initWordEmb}

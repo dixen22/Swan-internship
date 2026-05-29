@@ -29,6 +29,9 @@ dependencies:
   - nlp-tools
   - cassava
   - bytestring
+  - unordered-containers
+  - hashable
+  - aeson
 
 ghc-options:
   - -Wall
@@ -149,10 +152,13 @@ executables:
     main: Word2vec.hs
     source-dirs: Session6
     ghc-options:
+      - -O2
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
       - -main-is Word2vec
+    dependencies:
+      - internship
 
   session-6-eval:
     main: Eval.hs
@@ -162,6 +168,18 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -main-is Eval
+    dependencies:
+      - internship
+
+  session-7-rnn:
+    main: Rnn.hs
+    source-dirs: Session7
+    ghc-options:
+      - -O2
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is Rnn
     dependencies:
       - internship
 

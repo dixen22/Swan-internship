@@ -38,14 +38,17 @@ library
       Session5/src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -59,15 +62,18 @@ executable internship-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -83,15 +89,18 @@ executable session-3-graduate-admission-linear
       Session3
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is GraduateAdmissionLinear
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -107,15 +116,18 @@ executable session-3-multiple-regression
       Session3
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is MultipleRegression
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -130,15 +142,18 @@ executable session-4-mlp-xor
       Session4
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is MlpXor
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -153,15 +168,18 @@ executable session-4-perceptron-and-gate
       Session4
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is PerceptronAndGate
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -176,15 +194,18 @@ executable session-5-admit
       Session5
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Admit
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -200,15 +221,18 @@ executable session-5-evaluation
       Session5/src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Evaluation
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -223,15 +247,18 @@ executable session-5-titanic
       Session5
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Titanic
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -246,15 +273,18 @@ executable session-6-eval
       Session6
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Eval
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -267,16 +297,45 @@ executable session-6-word2vec
       Paths_internship
   hs-source-dirs:
       Session6
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is Word2vec
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -main-is Word2vec
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
+    , internship
     , nlp-tools
     , split
+    , unordered-containers
+    , utf8-string
+  default-language: Haskell2010
+
+executable session-7-rnn
+  main-is: Rnn.hs
+  other-modules:
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session7
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -main-is Rnn
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , cassava
+    , containers
+    , hashable
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+    , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -292,15 +351,18 @@ executable session3-linear-regression
       Session3
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -main-is LinearRegression
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
 
@@ -315,14 +377,17 @@ test-suite internship-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
+    , hashable
     , hasktorch
     , hasktorch-tools
     , internship
     , nlp-tools
     , split
+    , unordered-containers
     , utf8-string
   default-language: Haskell2010
