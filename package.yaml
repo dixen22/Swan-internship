@@ -8,7 +8,6 @@ copyright: "2026 Author name here"
 
 extra-source-files:
   - README.md
-  - CHANGELOG.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -46,20 +45,9 @@ ghc-options:
 
 library:
   source-dirs:
-    - src
     - Session5/src
 
 executables:
-  internship-exe:
-    main: Main.hs
-    source-dirs: app
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - internship
-
   session3-linear-regression:
     main: LinearRegression.hs
     source-dirs: Session3
@@ -180,16 +168,5 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -main-is Rnn
-    dependencies:
-      - internship
-
-tests:
-  internship-test:
-    main: Spec.hs
-    source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
     dependencies:
       - internship
