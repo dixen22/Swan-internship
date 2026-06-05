@@ -170,3 +170,15 @@ executables:
       - -main-is Rnn
     dependencies:
       - internship
+
+  session-8-cnn:
+    main: CnnText.hs
+    source-dirs: Session8
+    ghc-options:
+      - -O2
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is CnnText
+    dependencies:
+      - internship

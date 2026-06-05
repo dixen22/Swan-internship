@@ -311,6 +311,31 @@ executable session-7-rnn
     , utf8-string
   default-language: Haskell2010
 
+executable session-8-cnn
+  main-is: CnnText.hs
+  other-modules:
+      Paths_internship
+  autogen-modules:
+      Paths_internship
+  hs-source-dirs:
+      Session8
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -main-is CnnText
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , cassava
+    , containers
+    , hashable
+    , hasktorch
+    , hasktorch-tools
+    , internship
+    , nlp-tools
+    , split
+    , unordered-containers
+    , utf8-string
+  default-language: Haskell2010
+
 executable session3-linear-regression
   main-is: LinearRegression.hs
   other-modules:

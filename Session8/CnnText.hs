@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Rnn (main) where
+module CnnText (main) where -- Correction du Warning "missing-export-lists"
 
 import Codec.Binary.UTF8.String (encode)
 import Data.Aeson (FromJSON(..), ToJSON(..), eitherDecode)
@@ -16,44 +16,43 @@ import qualified Data.ByteString.Lazy.Char8 as B8
 import qualified Data.Map.Strict as M
 import GHC.Generics
 import Data.Int (Int64)
-import Data.List (foldl')
 import Data.Char (toLower, isAlphaNum)
 import Data.List.Split (splitPlaces)
-import Control.Monad (when)
+import Control.Monad (when, foldM)
 import Text.Printf (printf)
 import System.IO (hFlush, stdout)
 import System.Mem (performMinorGC)
 
-import Torch.NN (Parameter, Parameterized(..), Randomizable(..), sample)
+import Torch.NN hiding (forward)
+import Torch.Tensor
+import Torch.Functional hiding (min, max, take, repeat, mseLoss)
 import Torch.Serialize (loadParams, saveParams)
 import Torch.TensorFactories (randnIO', zeros')
 import Torch.Autograd (makeIndependent, toDependent)
-import Torch.Functional (embedding')
-import Torch.Tensor (Tensor, asTensor, asValue)
-import Torch.Layer.Linear (LinearHypParams(..), LinearParams(..), linearLayer)
 import Torch.Optim (GD(..), runStep)
 import Torch.Control (makeBatch, foldLoopM)
 import ML.Exp.Chart (drawLearningCurve)
 import qualified Torch as T
 import Evaluation (evaluate)
 
+-- LA CORRECTION : On force l'aléatoire pour éviter le crash "index out of range"
 embeddingIsRandom :: Bool
-embeddingIsRandom = False
+embeddingIsRandom = True
 
-embeddingDimSize :: Int
-embeddingDimSize = 128
+seq_len :: Int
+seq_len = 35
 
-hiddenDimSize :: Int
-hiddenDimSize = 512
+embSize :: Int
+embSize = 128
 
 batchSize :: Int
 batchSize = 32
 
 maxEpoch :: Int
-maxEpoch = 50
+maxEpoch = 15
 
 learningRate :: Tensor
-learningRate = asTensor (0.0001 :: Float)
+learningRate = asTensor (0.001 :: Float)
 
 patience :: Int
 patience = 3
@@ -71,8 +70,8 @@ embeddingPath = "Session6/data/sample_embedding.params"
 wordLstPath   = "Session6/data/sample_wordlst.txt"
 
 modelOutPath, imgPath :: FilePath
-modelOutPath = "Session7/data/rnn_model.params"
-imgPath      = "Session7/img/learning-curve.png"
+modelOutPath = "Session8/data/cnn_model.params"
+imgPath      = "Session8/img/learning-curve-cnn.png"
 
 data Image = Image {
   small_image_url :: String,
@@ -93,102 +92,119 @@ data AmazonReview = AmazonReview {
   helpful_vote :: Int
 } deriving (Show, Generic, FromJSON, ToJSON)
 
+type Batch = [([Int64], Float)]
+
+data CnnTextBBSpec = CnnTextBBSpec
+  { conv1 :: Conv1dSpec,
+    conv2 :: Conv1dSpec,
+    conv3 :: Conv1dSpec,
+    conv4 :: Conv1dSpec,
+    fc    :: LinearSpec
+  } deriving (Show, Eq)
+
+cnnTextBackBoneSpec :: CnnTextBBSpec
+cnnTextBackBoneSpec =
+  CnnTextBBSpec
+    (Conv1dSpec embSize outSize 2)
+    (Conv1dSpec embSize outSize 3)
+    (Conv1dSpec embSize outSize 4)
+    (Conv1dSpec embSize outSize 5)
+    (LinearSpec inFc 1)
+  where
+    outSize = 32
+    inFc = 4 * outSize -- 4 branches de convolution
+
+data CnnTextBB = CnnTextBB
+  { c1 :: Conv1d,
+    c2 :: Conv1d,
+    c3 :: Conv1d,
+    c4 :: Conv1d,
+    l1 :: Linear
+  } deriving (Generic, Show, Parameterized)
+
+instance Randomizable CnnTextBBSpec CnnTextBB where
+  sample CnnTextBBSpec {..} =
+    CnnTextBB
+      <$> sample conv1
+      <*> sample conv2
+      <*> sample conv3
+      <*> sample conv4
+      <*> sample fc
+
+data Embedding = Embedding {
+  wordEmbedding :: Parameter
+} deriving (Show, Generic, Parameterized)
+
 data ModelSpec = ModelSpec {
   wordNum :: Int,
   wordDim :: Int
 } deriving (Show, Eq, Generic)
 
-data RnnSpec = RnnSpec {
-  inputDim  :: Int,
-  hiddenDim :: Int
-} deriving (Show, Eq, Generic)
-
-data Embedding = Embedding {
-    wordEmbedding :: Parameter
-} deriving (Show, Generic, Parameterized)
-
-data RNN = RNN {
-  input_weight  :: Parameter,
-  hidden_weight :: Parameter,
-  bias          :: Parameter
-} deriving (Show, Generic, Parameterized)
-
 data Model = Model {
-  emb     :: Embedding,
-  rnn     :: RNN,
-  decoder :: LinearParams
+  emb :: Embedding,
+  cnn :: CnnTextBB
 } deriving (Show, Generic, Parameterized)
-
-instance Randomizable RnnSpec RNN where
-  sample RnnSpec {..} = do
-    w_ih_raw <- randnIO' [inputDim, hiddenDim]
-    w_hh_raw <- randnIO' [hiddenDim, hiddenDim]
-    let b_raw = zeros' [hiddenDim]
-
-    w_ih <- makeIndependent $ T.mulScalar (0.1 :: Float) w_ih_raw
-    w_hh <- makeIndependent $ T.mulScalar (0.1 :: Float) w_hh_raw
-    b    <- makeIndependent b_raw
-
-    return $ RNN w_ih w_hh b
 
 instance Randomizable ModelSpec Model where
-    sample ModelSpec {..} =
-        Model
-        <$> (Embedding <$> (makeIndependent =<< randnIO' [wordNum, wordDim]))
-        <*> sample (RnnSpec wordDim hiddenDimSize)
-        <*> sample (LinearHypParams (T.Device T.CPU 0) True hiddenDimSize 1)
+  sample ModelSpec {..} =
+    Model
+      <$> (Embedding <$> (makeIndependent =<< randnIO' [wordNum, wordDim]))
+      <*> sample cnnTextBackBoneSpec
 
 initialize :: ModelSpec -> FilePath -> IO Model
 initialize modelSpec embPath = do
   randomizedModel <- sample modelSpec
-  loadedEmb <- loadParams (emb randomizedModel) embPath
   if embeddingIsRandom
-    then return Model { emb = loadedEmb, rnn = rnn randomizedModel, decoder = decoder randomizedModel }
+    then return randomizedModel
     else do
-      return randomizedModel
+      loadedEmb <- loadParams (emb randomizedModel) embPath
+      return randomizedModel { emb = loadedEmb }
 
-tanhFunc :: Tensor -> Tensor
-tanhFunc x = (T.exp x - T.exp (-x)) / (T.exp x + T.exp (-x))
+convLayer :: Conv1d -> Int -> Tensor -> Tensor
+convLayer conv kernel input =
+  squeezeDim 2
+    . maxPool1d poolSize 1 0 1 Floor
+    . relu
+    . conv1dForward conv 1 0
+    $ input
+  where
+    poolSize = seq_len - kernel + 1
 
-gate :: Tensor -> Tensor -> (Tensor -> Tensor) -> Tensor -> Tensor -> Tensor -> Tensor
-gate input hidden activ w_ih w_hh b = activ (T.matmul input w_ih + T.matmul hidden w_hh + b)
+forward :: Model -> Bool -> Tensor -> IO Tensor
+forward Model{..} isTrain input = do
+  let wEmb = toDependent (wordEmbedding emb)
+      x = embedding' wEmb input
+      x_t = transpose (Dim 1) (Dim 2) x
+      x1 = convLayer (c1 cnn) 2 x_t
+      x2 = convLayer (c2 cnn) 3 x_t
+      x3 = convLayer (c3 cnn) 4 x_t
+      x4 = convLayer (c4 cnn) 5 x_t
 
-nextState :: RNN -> Tensor -> Tensor -> Tensor
-nextState RNN {..} input hidden =
-  let ih = toDependent input_weight
-      hh = toDependent hidden_weight
-      b  = toDependent bias
-  in gate input hidden tanhFunc ih hh b
+      combined = cat (Dim 1) [x1, x2, x3, x4]
+      linOut = linear (l1 cnn) combined
 
-unstack :: Tensor -> [Tensor]
-unstack t = [T.select 0 i t | i <- [0 .. (head (T.shape t) - 1)]]
-
-forwardRegression :: Model -> Tensor -> [Int64] -> Tensor
-forwardRegression model h0 wordIds =
-  let xTrain = asTensor wordIds
-      wEmb = toDependent (wordEmbedding (emb model))
-      embTrain = embedding' wEmb xTrain
-      wordVectors = unstack embTrain
-      hLast = foldl' (\hBrut x_t -> nextState (rnn model) x_t hBrut) h0 wordVectors
-  in linearLayer (decoder model) hLast
-
-type Batch = [([Int64], Float)]
+  droppedOut <- dropout 0.25 isTrain linOut
+  return $ squeezeAll (sigmoid droppedOut)
 
 mseLoss :: Tensor -> Tensor -> Tensor
 mseLoss prediction target = T.mean ((prediction - target) * (prediction - target))
 
-calcBatchLoss :: Model -> Batch -> Tensor
-calcBatchLoss model batch =
-    let totalLoss = foldl' (\accLoss (wordIds, targetRating) ->
-         let h0 = zeros' [hiddenDimSize]
-             prediction = forwardRegression model h0 wordIds
-             target = asTensor [targetRating]
-         in accLoss + mseLoss prediction target ) (zeros' [1]) batch
-    in totalLoss / asTensor [fromIntegral (length batch) :: Float]
+calcBatchLoss :: Model -> Bool -> Batch -> IO Tensor
+calcBatchLoss model isTrain batch = do
+    let zeroLoss = zeros' [1]
+        batchSizeTensor = asTensor [fromIntegral (length batch) :: Float]
+
+    totalLoss <- foldM (\accLoss (wordIds, targetRating) -> do
+         let inputTensor = reshape [1, seq_len] (asTensor wordIds)
+         prediction <- forward model isTrain inputTensor
+         let target = asTensor [targetRating]
+         return $ accLoss + mseLoss prediction target
+         ) zeroLoss batch
+    return $ totalLoss / batchSizeTensor
 
 trainBatch :: Int -> (Int, Batch) -> (Model, Float) -> IO (Model, Float)
 trainBatch totalBatches (batchIdx, batch) (currModel, !totalLoss) = do
-    let batchLoss = calcBatchLoss currModel batch
+    batchLoss <- calcBatchLoss currModel True batch
     (newModel, _) <- runStep currModel GD batchLoss learningRate
 
     when (batchIdx `mod` 50 == 0 || batchIdx == totalBatches) $ do
@@ -200,7 +216,7 @@ trainBatch totalBatches (batchIdx, batch) (currModel, !totalLoss) = do
 
 valBatch :: Int -> (Int, Batch) -> (Model, Float) -> IO (Model, Float)
 valBatch totalBatches (batchIdx, batch) (currModel, !totalLoss) = do
-    let batchLoss = calcBatchLoss currModel batch
+    batchLoss <- calcBatchLoss currModel False batch
 
     when (batchIdx `mod` 50 == 0 || batchIdx == totalBatches) $ do
         printf "\r\ESC[K  Validation %d/%d" batchIdx totalBatches
@@ -229,7 +245,6 @@ processEpoch trainBatches valBatches epoch model = do
 trainLoop :: [(Int, Batch)] -> [(Int, Batch)] -> Int -> Int -> Float -> Model -> [(Float, Float)] -> IO (Model, [(Float, Float)])
 trainLoop trainBatches valBatches epoch patienceCounter bestValLoss model losses
     | epoch > maxEpoch || patienceCounter >= patience = do
-        putStrLn "\nFin de l'entraînement (Early Stopping ou Max Epoch atteint)."
         return (model, reverse losses)
     | otherwise = do
         (newModel, (trainLoss, valLoss)) <- processEpoch trainBatches valBatches epoch model
@@ -267,57 +282,60 @@ loadDataset path = do
     Left _   -> return []
     Right r  -> return r
 
-cleanDataset :: (B.ByteString -> Int64) -> [AmazonReview] -> [([Int64], Float)]
-cleanDataset wordToIndex = filter (\(ids, _) -> not (null ids)) . map (\r ->
-    let tokens = take 50 $ concat $ preprocess (B8.pack $ text r)
-        ids = map wordToIndex tokens
-    in (ids, rating r))
+padOrTruncate :: Int -> [Int64] -> [Int64]
+padOrTruncate n xs = take n (xs ++ repeat 0)
 
+cleanDataset :: (B.ByteString -> Int64) -> [AmazonReview] -> [([Int64], Float)]
+cleanDataset wordToIndex reviews =
+  let validReviews = filter (not . null . preprocess . B8.pack . text) reviews
+  in map (\r ->
+    let tokens = concat $ preprocess (B8.pack $ text r)
+        ids = padOrTruncate seq_len (map wordToIndex tokens)
+    in (ids, rating r)) validReviews
 
 main :: IO ()
 main = do
-    trainData' <- loadDataset trainReviewPath
-    validData' <- loadDataset validReviewPath
-    testData'  <- loadDataset testReviewPath
+  trainData' <- loadDataset trainReviewPath
+  validData' <- loadDataset validReviewPath
+  testData'  <- loadDataset testReviewPath
 
-    wordLst <- fmap (B.split (head $ encode "\n")) (B.readFile wordLstPath)
-    let wordToIndex = wordToIndexFactory wordLst
-        totalWords  = length wordLst + 1
-        modelSpec = ModelSpec { wordDim = embeddingDimSize, wordNum = totalWords }
+  wordLst <- fmap (B.split (head $ encode "\n")) (B.readFile wordLstPath)
+  let wordToIndex = wordToIndexFactory wordLst
+      totalWords  = length wordLst + 1
+      modelSpec = ModelSpec { wordDim = embSize, wordNum = totalWords }
 
-    let cleanTrainData = cleanDataset wordToIndex trainData'
-        cleanValidData = cleanDataset wordToIndex validData'
-        cleanTestData  = cleanDataset wordToIndex testData'
+  let cleanTrainData = cleanDataset wordToIndex trainData'
+      cleanValidData = cleanDataset wordToIndex validData'
+      cleanTestData  = cleanDataset wordToIndex testData'
 
-    let !trainData = keepSplit 0.02 cleanTrainData
-        !validData = keepSplit 0.5 cleanValidData
-        !testData  = keepSplit 0.5 cleanTestData
-        !trainBatches = makeBatch batchSize trainData
-        !valBatches   = makeBatch batchSize validData
-        !indexedTrainBatches = zip [1..] trainBatches
-        !indexedValBatches   = zip [1..] valBatches
+  let !trainData = keepSplit 0.05 cleanTrainData
+      !validData = keepSplit 0.5 cleanValidData
+      !testData  = keepSplit 0.5 cleanTestData
+      !trainBatches = makeBatch batchSize trainData
+      !valBatches   = makeBatch batchSize validData
+      !indexedTrainBatches = zip [1..] trainBatches
+      !indexedValBatches   = zip [1..] valBatches
 
-    initModel <- initialize modelSpec embeddingPath
+  initModel <- initialize modelSpec embeddingPath
 
-    putStrLn "*** Training ***"
-    (trainedModel, losses) <- trainLoop indexedTrainBatches indexedValBatches 1 0 (1/0) initModel []
+  putStrLn "*** Training ***"
+  (trainedModel, losses) <- trainLoop indexedTrainBatches indexedValBatches 1 0 (1/0) initModel []
 
-    let trainLossList = [x | (x, _) <- losses]
-        validLossList = [x | (_, x) <- losses]
+  let trainLossList = [x | (x, _) <- losses]
+      validLossList = [x | (_, x) <- losses]
 
-    putStrLn "\n*** Testing ***"
-    let h0 = zeros' [hiddenDimSize]
-        predictedClasses = map (\(wordIds, _) ->
-            let predVal = asValue (forwardRegression trainedModel h0 wordIds) :: Float
-            in min 5 (max 0 (round predVal)) :: Int
-            ) testData
+  predictedClasses <- mapM (\(wordIds, _) -> do
+          let inputTensor = reshape [1, seq_len] (asTensor wordIds)
+          predVal <- asValue <$> forward trainedModel False inputTensor
+          return $ (min 5 (max 0 (round (predVal :: Float))) :: Int)
+      ) testData
 
-        actualClasses = map (\(_, targetRating) -> round targetRating :: Int) testData
+  let actualClasses = map (\(_, targetRating) -> round targetRating :: Int) testData
 
-    putStrLn "*** Results ***"
-    evaluate [0..5] actualClasses predictedClasses
+  putStrLn "*** Results ***"
+  evaluate [0..5] actualClasses predictedClasses
 
-    putStrLn "\n*** Saving learning curve and parameters... ***"
-    drawLearningCurve imgPath "Learning Curve RNN" [("train", trainLossList), ("valid", validLossList)]
+  putStrLn "\n*** Saving learning curve and parameters... ***"
+  drawLearningCurve imgPath "Learning Curve CNN" [("train", trainLossList), ("valid", validLossList)]
 
-    saveParams (emb trainedModel) modelOutPath
+  saveParams (emb trainedModel) modelOutPath
